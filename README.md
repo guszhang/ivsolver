@@ -73,6 +73,7 @@ usage example:
    $$
    \mathrm{d}L = \frac{\mu_0}{2\pi} \left( l\ln{\left(\frac{l + \sqrt{l^2 + a^2}}{a}\right)}  - \sqrt{l^2 + a^2} + \frac{l}{4} +a  \right)
    $$
+   
    where $l$ is the length of the segment, $a$ is the radius of the wire, and $\mu_0$ is the permeability of free space. The solver uses numerical integration to compute the contributions from each segment of the wires.
 
    The accuracy of this method was verified against the analytical solutions for simple geometries and ANSYS simulations, reported in the appendix of the [IPTVisual paper](https://doi.org/10.3390/wevj13040063).
