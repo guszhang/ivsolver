@@ -63,13 +63,13 @@ usage example:
    After running the solver, `n+1` output files are generated with the designated path/name. The `.lmat` file contains the L matrix of size `n` x `n`, where the diagonal elements represent the self-inductance of each wire, and the off-diagonal elements represent the mutual inductance between pairs of wires. The unit is $\mathrm{H}$ (Henries). The last line of the `.lmat` file is the total length of each wire in meters. The `_x.trj` files where `x` is the wire index (0 to n-1) contain the trajectory points of each wire in the format `x y z` (three float numbers).
 
    The computation of the inductance matrix is based on the Neumann's formula, which is a well-known method for calculating the self and mutual inductance of wire configurations. The wire generation programme segments the wires into small segments of length equal to the wire diameter, and the inductance is calculated using the following formula given by Maxwell:
-   $$
+   ```math
    L_{ij} = \frac{\mu_0}{4\pi} \int_{l_i} \int_{l_j} \frac{\mathrm{d}\mathbf{l}_i \cdot \mathrm{d}\mathbf{l}_j}{|\mathbf{r}_i - \mathbf{r}_j|}
-   $$
+   ```
    For self-inductance calculation where $\mathrm{d}\mathbf{l}_i$ and $\mathrm{d}\mathbf{l}_j$ refer to the same segment, a closed-form kernel equation is used to avoid divide-by-zero.
-   $$
+   ```math
    \mathrm{d}L = \frac{\mu_0}{2\pi} \left( l\ln{\left(\frac{l + \sqrt{l^2 + a^2}}{a}\right)}  - \sqrt{l^2 + a^2} + \frac{l}{4} +a  \right)
-   $$
+   ```
    where $l$ is the length of the segment, $a$ is the radius of the wire, and $\mu_0$ is the permeability of free space. The solver uses numerical integration to compute the contributions from each segment of the wires.
 
    The accuracy of this method was verified against the analytical solutions for simple geometries and ANSYS simulations, reported in the appendix of the [IPTVisual paper](https://doi.org/10.3390/wevj13040063).
