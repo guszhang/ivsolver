@@ -44,21 +44,15 @@ void IPTVisual::wire::fill_points_arc(vector_3d head, vector_3d rear)
     double r_rear = sqrt(rear.x * rear.x + rear.y * rear.y);
     double t_head = atan2(head.y, head.x);
     double t_rear = atan2(rear.y, rear.x);
-    if (head.x < 0)
+    // atan2 returns (-pi, pi]; shift into [0, 2*pi) so that the arc below always
+    // sweeps in the increasing-angle direction rather than taking the short route.
+    if (t_head < 0)
     {
-        t_head += pi;
+        t_head += 2 * pi;
     }
-    else if (head.y < 0)
+    if (t_rear < 0)
     {
-        t_head += pi;
-    }
-    if (rear.x < 0)
-    {
-        t_rear += pi;
-    }
-    else if (rear.y < 0)
-    {
-        t_rear += pi;
+        t_rear += 2 * pi;
     }
     if (t_head >= t_rear)
     {
