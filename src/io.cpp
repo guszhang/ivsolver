@@ -72,6 +72,17 @@ std::vector<IPTVisual::wire> read_wires(std::string filename)
                 }
                 wire_obj->append_any_spiral(key_points);
                 break;
+            case 'a': // a for "arc", rotating around the z-direction axis at (axis_x, axis_y), in the given direction (+1 or -1).
+                double axis_x, axis_y;
+                int direction;
+                file_in >> axis_x >> axis_y >> direction >> number_of_points;
+                for (int j = 0; j < number_of_points; j++)
+                {
+                    file_in >> vec.x >> vec.y >> vec.z;
+                    key_points.push_back(vec);
+                }
+                wire_obj->append_any_arc(key_points, axis_x, axis_y, direction);
+                break;
             case 'g': // g for "saggy", with parameter "a" known
                 double a;
                 file_in >> number_of_points >> a;

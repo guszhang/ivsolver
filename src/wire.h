@@ -31,6 +31,7 @@ namespace IPTVisual
         double total_length;
 
         void append_any_spiral(const std::vector<vector_3d> key_points);
+        void append_any_arc(const std::vector<vector_3d> key_points, const double axis_x, const double axis_y, const int direction);
         void append_any_lines(const std::vector<vector_3d> key_points);
         void append_any_saggy_lines(const std::vector<vector_3d> key_points, const double a);
         void append_any_saggy_lines_with_length(const std::vector<vector_3d> key_points, const std::vector<double> length_array);
@@ -50,6 +51,7 @@ namespace IPTVisual
         double segment_self_inductance(double segment_length);
         void fill_points_line(vector_3d head, vector_3d rear);
         void fill_points_arc(vector_3d head, vector_3d rear);
+        void fill_points_arc_about_axis(vector_3d head, vector_3d rear, const double axis_x, const double axis_y, const int direction);
         void fill_points_saggy_line(vector_3d head, vector_3d rear, const double a);
         double solve_a(const vector_3d head, const vector_3d rear, const double length);
         double solve_rx(const double a, const double dr, const double dz);

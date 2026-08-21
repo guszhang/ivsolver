@@ -79,6 +79,53 @@ void IPTVisual::wire::fill_points_arc(vector_3d head, vector_3d rear)
     this->trajectory.push_back(rear);
 }
 
+// fill segments from <head>(non-inclusive) to <rear>(inclusive) along an arc that
+// rotates around the z-direction axis passing through (axis_x, axis_y), rather than
+// around the origin as in fill_points_arc. <direction> is +1 for the increasing-angle
+// direction (the same growth direction as the spiral segments) and -1 for the opposite.
+void IPTVisual::wire::fill_points_arc_about_axis(vector_3d head, vector_3d rear, const double axis_x, const double axis_y, const int direction)
+{
+    double head_x = head.x - axis_x;
+    double head_y = head.y - axis_y;
+    double rear_x = rear.x - axis_x;
+    double rear_y = rear.y - axis_y;
+    double r_head = sqrt(head_x * head_x + head_y * head_y);
+    double r_rear = sqrt(rear_x * rear_x + rear_y * rear_y);
+    double t_head = atan2(head_y, head_x);
+    double t_rear = atan2(rear_y, rear_x);
+    if (direction >= 0)
+    {
+        while (t_rear <= t_head)
+        {
+            t_rear += 2 * pi;
+        }
+    }
+    else
+    {
+        while (t_rear >= t_head)
+        {
+            t_rear -= 2 * pi;
+        }
+    }
+    int sc = (int)floor(sqrt((r_head - r_rear) * (r_head - r_rear) + (r_head * (t_rear - t_head)) * (r_head * (t_rear - t_head)) + (head.z - rear.z) * (head.z - rear.z)) / (2 * this->section_radius));
+    if (sc < 1)
+    {
+        sc = 1;
+    }
+    double dt = (t_rear - t_head) / sc;
+    double dz = (rear.z - head.z) / sc;
+    double dr = (r_rear - r_head) / sc;
+    vector_3d working_point = vector_3d(head);
+    for (int i = 1; i < sc; i++)
+    {
+        working_point.x = axis_x + (r_head + i * dr) * cos(t_head + i * dt);
+        working_point.y = axis_y + (r_head + i * dr) * sin(t_head + i * dt);
+        working_point.z = head.z + i * dz;
+        this->trajectory.push_back(working_point);
+    }
+    this->trajectory.push_back(rear);
+}
+
 double fx(double x, double a, double dr, double dz)
 {
     return a * cosh((dr - x) / a) - a * cosh(-x / a) - dz;
@@ -232,6 +279,28 @@ void IPTVisual::wire::append_any_spiral(const std::vector<vector_3d> key_points)
     for (int i = 1; i < key_points.size(); i++)
     {
         this->fill_points_arc(key_points[i - 1], key_points[i]);
+    }
+}
+
+void IPTVisual::wire::append_any_arc(const std::vector<vector_3d> key_points, const double axis_x, const double axis_y, const int direction)
+{
+    if (key_points.size() == 0)
+    {
+        return;
+    }
+    this->model_is_valid = false;
+    if (this->trajectory.size() == 0)
+    {
+        this->trajectory.push_back(key_points[0]);
+    }
+    else
+    {
+        this->fill_points_arc_about_axis(this->trajectory.back(), key_points[0], axis_x, axis_y, direction);
+    }
+
+    for (int i = 1; i < key_points.size(); i++)
+    {
+        this->fill_points_arc_about_axis(key_points[i - 1], key_points[i], axis_x, axis_y, direction);
     }
 }
 
