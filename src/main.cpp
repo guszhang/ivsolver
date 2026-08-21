@@ -41,6 +41,7 @@ int main(int argc, char *argv[])
     if (argc != 3 && argc != 5)
     {
         std::cout << "argc error" << std::endl;
+        return 1;
     }
     std::string filename_in(argv[1]);
     std::string filename_out(argv[2]);

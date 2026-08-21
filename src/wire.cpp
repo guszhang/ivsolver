@@ -65,6 +65,10 @@ void IPTVisual::wire::fill_points_arc(vector_3d head, vector_3d rear)
         t_rear += 2 * pi;
     }
     int sc = (int)floor(sqrt((r_head - r_rear) * (r_head - r_rear) + (r_head * (t_rear - t_head)) * (r_head * (t_rear - t_head)) + (head.z - rear.z) * (head.z - rear.z)) / (2 * this->section_radius));
+    if (sc < 1)
+    {
+        sc = 1;
+    }
     double dt = (t_rear - t_head) / sc;
     double dz = (rear.z - head.z) / sc;
     double dr = (r_rear - r_head) / sc;
@@ -382,6 +386,7 @@ IPTVisual::wire::wire(double section_radius)
 {
     this->section_radius = section_radius;
     this->trajectory.clear();
+    this->model_is_valid = false;
 }
 
 IPTVisual::wire::~wire()
@@ -399,6 +404,11 @@ void IPTVisual::wire::update_from_trajectory()
 {
     this->segments.clear();
     this->total_length = 0;
+    if (this->trajectory.size() < 2)
+    {
+        this->model_is_valid = true;
+        return;
+    }
     for (int i = 0; i < this->trajectory.size() - 1; i++)
     {
         segment seg;
@@ -413,7 +423,7 @@ void IPTVisual::wire::update_from_trajectory()
     this->model_is_valid = true;
 }
 
-double IPTVisual::wire::inductance_with(wire w)
+double IPTVisual::wire::inductance_with(const wire &w)
 {
     if (!this->model_is_valid)
     {
@@ -463,6 +473,7 @@ void IPTVisual::wire::rotate_z(double angle)
 }
 void IPTVisual::wire::move_offset(vector_3d offset)
 {
+    this->model_is_valid = false;
     for (auto v = this->trajectory.begin(); v < this->trajectory.end(); v++)
     {
         v->x += offset.x;

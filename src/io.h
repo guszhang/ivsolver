@@ -18,4 +18,4 @@ std::vector<IPTVisual::wire> read_wires(std::string filename);
 IPTVisual::observations read_observation_definition(std::string filename);
 void write_trajectory_points(std::string filename, std::vector<vector_3d> trajectory);
 void write_l_matrix(std::string filename, int n, double *l_matrix, double *len_array);
-void write_observation_values(std::string filename, IPTVisual::observations obs);
+void write_observation_values(std::string filename, const IPTVisual::observations &obs);

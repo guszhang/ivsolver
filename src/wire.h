@@ -44,7 +44,7 @@ namespace IPTVisual
 
         void update_from_trajectory();
 
-        double inductance_with(wire w);
+        double inductance_with(const wire &w);
         vector_3d_complex b_field_at_point(vector_3d point);
 
     private:

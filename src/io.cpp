@@ -22,7 +22,7 @@
  *   - IPTVisual::observations read_observation_definition(std::string filename):
  *       Reads observation grid definitions from a file and constructs an observations object.
  *
- *   - void write_observation_values(std::string filename, IPTVisual::observations obs):
+ *   - void write_observation_values(std::string filename, const IPTVisual::observations &obs):
  *       Writes observation points and their associated values to a file.
  */
 
@@ -39,9 +39,8 @@ std::vector<IPTVisual::wire> read_wires(std::string filename)
 
     for (int i = 0; i < number_of_windings; i++)
     {
-        IPTVisual::wire *wire_obj = new IPTVisual::wire(section_radius);
         file_in >> section_radius >> number_of_sectors;
-        wire_obj->section_radius = section_radius;
+        IPTVisual::wire wire_obj(section_radius);
         for (int sector = 0; sector < number_of_sectors; sector++)
         {
             char mode;
@@ -61,7 +60,7 @@ std::vector<IPTVisual::wire> read_wires(std::string filename)
                     file_in >> vec.x >> vec.y >> vec.z;
                     key_points.push_back(vec);
                 }
-                wire_obj->append_any_lines(key_points);
+                wire_obj.append_any_lines(key_points);
                 break;
             case 's':
                 file_in >> number_of_points;
@@ -70,7 +69,7 @@ std::vector<IPTVisual::wire> read_wires(std::string filename)
                     file_in >> vec.x >> vec.y >> vec.z;
                     key_points.push_back(vec);
                 }
-                wire_obj->append_any_spiral(key_points);
+                wire_obj.append_any_spiral(key_points);
                 break;
             case 'a': // a for "arc", rotating around the z-direction axis at (axis_x, axis_y), in the given direction (+1 or -1).
                 double axis_x, axis_y;
@@ -81,7 +80,7 @@ std::vector<IPTVisual::wire> read_wires(std::string filename)
                     file_in >> vec.x >> vec.y >> vec.z;
                     key_points.push_back(vec);
                 }
-                wire_obj->append_any_arc(key_points, axis_x, axis_y, direction);
+                wire_obj.append_any_arc(key_points, axis_x, axis_y, direction);
                 break;
             case 'g': // g for "saggy", with parameter "a" known
                 double a;
@@ -91,7 +90,7 @@ std::vector<IPTVisual::wire> read_wires(std::string filename)
                     file_in >> vec.x >> vec.y >> vec.z;
                     key_points.push_back(vec);
                 }
-                wire_obj->append_any_saggy_lines(key_points, a);
+                wire_obj.append_any_saggy_lines(key_points, a);
                 break;
             case 'c': // c for "catenary", with length of each segment given as the fourth parameter in each line connecting to the previous point.
                 double length;
@@ -102,42 +101,43 @@ std::vector<IPTVisual::wire> read_wires(std::string filename)
                     key_points.push_back(vec);
                     length_array.push_back(length);
                 }
-                wire_obj->append_any_saggy_lines_with_length(key_points, length_array);
+                wire_obj.append_any_saggy_lines_with_length(key_points, length_array);
                 break;
             case 'x':
                 file_in >> angle;
-                wire_obj->rotate_x(angle / 180 * pi);
+                wire_obj.rotate_x(angle / 180 * pi);
                 break;
             case 'y':
                 file_in >> angle;
-                wire_obj->rotate_y(angle / 180 * pi);
+                wire_obj.rotate_y(angle / 180 * pi);
                 break;
             case 'z':
                 file_in >> angle;
-                wire_obj->rotate_z(angle / 180 * pi);
+                wire_obj.rotate_z(angle / 180 * pi);
                 break;
             case 'o':
                 file_in >> vec.x >> vec.y >> vec.z;
-                wire_obj->move_offset(vec);
+                wire_obj.move_offset(vec);
                 break;
             case 'n':
                 file_in >> vec.x >> vec.y >> vec.z;
-                wire_obj->align_normal(vec);
+                wire_obj.align_normal(vec);
                 break;
             case 'b':
                 file_in >> radius;
-                wire_obj->bend_circle_x(radius);
+                wire_obj.bend_circle_x(radius);
                 break;
             case 'i':
                 double real, imag;
                 file_in >> real >> imag;
-                wire_obj->current = std::complex<double>(real, imag);
+                wire_obj.current = std::complex<double>(real, imag);
+                break;
             default:
                 break;
             }
         }
-        wire_obj->update_from_trajectory();
-        winding_array.push_back(*wire_obj);
+        wire_obj.update_from_trajectory();
+        winding_array.push_back(wire_obj);
     }
     file_in.close();
     return winding_array;
@@ -184,7 +184,7 @@ IPTVisual::observations read_observation_definition(std::string filename)
     return obs;
 }
 
-void write_observation_values(std::string filename, IPTVisual::observations obs)
+void write_observation_values(std::string filename, const IPTVisual::observations &obs)
 {
     std::ofstream file_out(filename);
     for (int i = 0; i < obs.observation_points.size(); i++)
