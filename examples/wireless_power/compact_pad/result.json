@@ -1,0 +1,81 @@
+{
+  "feasible": true,
+  "topology": "three identical outward-growing spiral coils arranged at 120-degree intervals in the XY plane",
+  "candidate": {
+    "inner_radius_m": 0.11,
+    "turn_pitch_m": 0.003,
+    "lobe_center_radius_m": 0.17,
+    "outer_radius_m": 0.116
+  },
+  "inductance_matrix_h": [
+    [
+      2.57327e-06,
+      -3.85648e-08,
+      -4.00453e-08
+    ],
+    [
+      -3.85648e-08,
+      2.57327e-06,
+      -3.93326e-08
+    ],
+    [
+      -4.00453e-08,
+      -3.93326e-08,
+      2.57327e-06
+    ]
+  ],
+  "self_inductances_uH": [
+    2.57327,
+    2.57327,
+    2.57327
+  ],
+  "mutual_inductances_nH": [
+    -38.5648,
+    -40.045300000000005,
+    -39.3326
+  ],
+  "wire_lengths_m": [
+    1.42,
+    1.42,
+    1.42
+  ],
+  "resistances_ohm": [
+    0.013499734479645354,
+    0.013499734479645354,
+    0.013499734479645354
+  ],
+  "inductance_over_resistance_h_per_ohm": [
+    0.00019061634166804748,
+    0.00019061634166804748,
+    0.00019061634166804748
+  ],
+  "max_self_inductance_error_h": 7.326999999999981e-08,
+  "max_mutual_inductance_abs_h": 4.00453e-08,
+  "searched_candidates": 27,
+  "search_truncated": false,
+  "constraints": {
+    "target_self_inductance_h": 2.5e-06,
+    "inductance_tolerance_h": 5e-07,
+    "mutual_tolerance_h": 5e-08,
+    "wire_radius_m": 0.00075,
+    "resistivity_ohm_m": 1.68e-08,
+    "turns": 2,
+    "inner_radius_bounds_m": [
+      0.07,
+      0.11
+    ],
+    "pitch_bounds_m": [
+      0.003,
+      0.005
+    ],
+    "lobe_center_radius_bounds_m": [
+      0.17,
+      0.25
+    ],
+    "max_footprint_radius_m": 0.38,
+    "samples_per_axis": 3,
+    "refine_rounds": 0
+  },
+  "coil_description": "Three planar coils form a three-lobe flower, with their centres spaced at 120-degree intervals on a circle of radius 0.17 m. Each coil has 2 outward-growing turns, an inner winding radius of 0.11 m, and a radial pitch of 0.003 m. The wire cross-section radius is 0.00075 m. The calculated wire lengths are 1.42 m, 1.42 m, 1.42 m.",
+  "warnings": []
+}

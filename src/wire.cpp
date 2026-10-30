@@ -17,6 +17,27 @@
  *     - Observation grid management for field visualization or analysis.
  */
 #include "wire.h"
+#include <algorithm>
+
+namespace
+{
+vector_3d normalized(vector_3d v)
+{
+    double length = mLen(v);
+    return vector_3d(v.x / length, v.y / length, v.z / length);
+}
+
+void make_plane_basis(vector_3d normal, vector_3d x_direction, vector_3d &x_axis, vector_3d &y_axis)
+{
+    normal = normalized(normal);
+    double projection = mDotProduct(x_direction, normal);
+    x_direction.x -= projection * normal.x;
+    x_direction.y -= projection * normal.y;
+    x_direction.z -= projection * normal.z;
+    x_axis = normalized(x_direction);
+    y_axis = normalized(mCrossProduct(normal, x_axis));
+}
+}
 
 // fill segments from <head>(non-inclusive) to <rear>(inclusive)
 void IPTVisual::wire::fill_points_line(vector_3d head, vector_3d rear)
@@ -373,6 +394,84 @@ void IPTVisual::wire::append_any_saggy_lines_with_length(const std::vector<vecto
             double a = solve_a(key_points[i - 1], key_points[i], length_array[i]);
             this->fill_points_saggy_line(key_points[i - 1], key_points[i], a);
         }
+    }
+}
+
+void IPTVisual::wire::append_ellipse(vector_3d center, vector_3d normal, vector_3d x_direction, double major_axis_length, double minor_axis_length, double start_angle, double end_angle)
+{
+    this->model_is_valid = false;
+    vector_3d x_axis, y_axis;
+    make_plane_basis(normal, x_direction, x_axis, y_axis);
+
+    const double a = major_axis_length;
+    const double b = minor_axis_length;
+    const double theta0 = start_angle * pi / 180.0;
+    const double theta1 = end_angle * pi / 180.0;
+    const double theta_span = theta1 - theta0;
+    auto point_at = [&](double theta)
+    {
+        return vector_3d(center.x + a * cos(theta) * x_axis.x + b * sin(theta) * y_axis.x,
+                         center.y + a * cos(theta) * x_axis.y + b * sin(theta) * y_axis.y,
+                         center.z + a * cos(theta) * x_axis.z + b * sin(theta) * y_axis.z);
+    };
+
+    vector_3d start = point_at(theta0);
+    if (this->trajectory.empty())
+    {
+        this->trajectory.push_back(start);
+    }
+    else if (mLen(this->trajectory.back(), start) > 0)
+    {
+        this->fill_points_line(this->trajectory.back(), start);
+    }
+
+    if (theta_span == 0)
+    {
+        return;
+    }
+    double max_radius = std::max(a, b);
+    double estimated_path = sqrt((a - b) * (a - b) + (max_radius * theta_span) * (max_radius * theta_span));
+    int steps = std::max(1, static_cast<int>(floor(estimated_path / (2.0 * this->section_radius))));
+    for (int i = 1; i <= steps; ++i)
+    {
+        this->trajectory.push_back(point_at(theta0 + theta_span * i / steps));
+    }
+}
+
+void IPTVisual::wire::append_parabola(vector_3d origin, vector_3d normal, vector_3d x_direction, double a, double b, double c, double x1, double x2)
+{
+    this->model_is_valid = false;
+    vector_3d x_axis, y_axis;
+    make_plane_basis(normal, x_direction, x_axis, y_axis);
+    auto point_at = [&](double x)
+    {
+        double y = a * x * x + b * x + c;
+        return vector_3d(origin.x + x * x_axis.x + y * y_axis.x,
+                         origin.y + x * x_axis.y + y * y_axis.y,
+                         origin.z + x * x_axis.z + y * y_axis.z);
+    };
+
+    vector_3d start = point_at(x1);
+    if (this->trajectory.empty())
+    {
+        this->trajectory.push_back(start);
+    }
+    else if (mLen(this->trajectory.back(), start) > 0)
+    {
+        this->fill_points_line(this->trajectory.back(), start);
+    }
+
+    if (x1 == x2)
+    {
+        return;
+    }
+    double max_slope = std::max(fabs(2 * a * x1 + b), fabs(2 * a * x2 + b));
+    double estimated_length = fabs(x2 - x1) * sqrt(1 + max_slope * max_slope);
+    int steps = std::max(1, static_cast<int>(ceil(estimated_length / (2.0 * this->section_radius))));
+    for (int i = 1; i <= steps; ++i)
+    {
+        double x = x1 + (x2 - x1) * i / steps;
+        this->trajectory.push_back(point_at(x));
     }
 }
 

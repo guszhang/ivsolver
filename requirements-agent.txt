@@ -1,0 +1,4 @@
+# MCP server runtime and standalone bundle builder
+mcp>=1.9,<2
+pyinstaller>=6.0
+Pillow>=10.0

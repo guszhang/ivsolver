@@ -1,0 +1,24 @@
+CXX ?= g++
+PYTHON ?= python3
+CXXFLAGS ?= -std=c++2a -O3
+SRC = src/arithmetic.cpp src/io.cpp src/wire.cpp src/main.cpp
+BACKEND = build/ivsolver-agent-backend
+
+.PHONY: all backend server run clean
+
+all: server
+
+backend: $(BACKEND)
+
+$(BACKEND): $(SRC) src/io.h src/wire.h src/arithmetic.h
+	@mkdir -p build
+	$(CXX) $(SRC) -o $(BACKEND) -Isrc $(CXXFLAGS)
+
+server: $(BACKEND)
+	$(PYTHON) -m PyInstaller --noconfirm --clean --onefile --collect-submodules mcp.server --collect-submodules mcp.shared --collect-data mcp --distpath dist --workpath build/pyinstaller/work --specpath build/pyinstaller --name ivsolver-coil-agent --paths . --add-data "$(abspath $(BACKEND)):." coil_agent/__main__.py
+
+run: $(BACKEND)
+	IVSOLVER_BIN=$(abspath $(BACKEND)) PYTHONPATH=. $(PYTHON) -m coil_agent.server
+
+clean:
+	@rm -rf build/ivsolver-agent-backend build/pyinstaller dist/ivsolver-coil-agent

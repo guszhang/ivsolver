@@ -33,6 +33,7 @@
 
 # Build directories
 build/
+dist/
 
 # Python cache files
 __pycache__/
@@ -42,3 +43,4 @@ __pycache__/
 # Python virtual environments
 venv/
 .env/
+.venv-agent/

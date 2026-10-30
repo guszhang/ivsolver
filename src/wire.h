@@ -35,6 +35,8 @@ namespace IPTVisual
         void append_any_lines(const std::vector<vector_3d> key_points);
         void append_any_saggy_lines(const std::vector<vector_3d> key_points, const double a);
         void append_any_saggy_lines_with_length(const std::vector<vector_3d> key_points, const std::vector<double> length_array);
+        void append_ellipse(vector_3d center, vector_3d normal, vector_3d x_direction, double major_axis_length, double minor_axis_length, double start_angle, double end_angle);
+        void append_parabola(vector_3d origin, vector_3d normal, vector_3d x_direction, double a, double b, double c, double x1, double x2);
         void rotate_x(double angle);
         void rotate_y(double angle);
         void rotate_z(double angle);

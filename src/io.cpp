@@ -103,6 +103,28 @@ std::vector<IPTVisual::wire> read_wires(std::string filename)
                 }
                 wire_obj.append_any_saggy_lines_with_length(key_points, length_array);
                 break;
+            case 'e':
+            {
+                vector_3d center, normal, x_direction;
+                double major_axis_length, minor_axis_length, start_angle, end_angle;
+                file_in >> center.x >> center.y >> center.z
+                        >> normal.x >> normal.y >> normal.z
+                        >> x_direction.x >> x_direction.y >> x_direction.z
+                        >> major_axis_length >> minor_axis_length >> start_angle >> end_angle;
+                wire_obj.append_ellipse(center, normal, x_direction, major_axis_length, minor_axis_length, start_angle, end_angle);
+                break;
+            }
+            case 'p':
+            {
+                vector_3d origin, normal, x_direction;
+                double a, b, c, x1, x2;
+                file_in >> origin.x >> origin.y >> origin.z
+                        >> normal.x >> normal.y >> normal.z
+                        >> x_direction.x >> x_direction.y >> x_direction.z
+                        >> a >> b >> c >> x1 >> x2;
+                wire_obj.append_parabola(origin, normal, x_direction, a, b, c, x1, x2);
+                break;
+            }
             case 'x':
                 file_in >> angle;
                 wire_obj.rotate_x(angle / 180 * pi);
