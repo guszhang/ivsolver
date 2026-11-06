@@ -1,7 +1,7 @@
 CXX ?= g++
 PYTHON ?= python3
-CXXFLAGS ?= -std=c++2a -O3
-SRC = src/arithmetic.cpp src/io.cpp src/wire.cpp src/main.cpp
+CXXFLAGS ?= -std=c++2a -O3 -pthread
+SRC = src/arithmetic.cpp src/io.cpp src/wire.cpp src/field.cpp src/circuit.cpp src/solver.cpp src/main.cpp
 BACKEND = build/ivsolver-agent-backend
 
 .PHONY: all backend server run clean
@@ -10,7 +10,7 @@ all: server
 
 backend: $(BACKEND)
 
-$(BACKEND): $(SRC) src/io.h src/wire.h src/arithmetic.h
+$(BACKEND): $(SRC) $(wildcard src/*.h)
 	@mkdir -p build
 	$(CXX) $(SRC) -o $(BACKEND) -Isrc $(CXXFLAGS)
 

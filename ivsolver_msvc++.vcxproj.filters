@@ -27,6 +27,15 @@
     <ClCompile Include="src\wire.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\field.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\circuit.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\solver.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\io.h">
@@ -36,6 +45,18 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\arithmetic.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\field.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\circuit.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\solver.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\parallel.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

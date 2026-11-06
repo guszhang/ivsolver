@@ -58,19 +58,19 @@ struct vector_3d
 		this->y = y;
 		this->z = z;
 	}
-	vector_3d operator+(const vector_3d a)
+	vector_3d operator+(const vector_3d a) const
 	{
 		return vector_3d(this->x + a.x, this->y + a.y, this->z + a.z);
 	}
-	vector_3d operator-(const vector_3d a)
+	vector_3d operator-(const vector_3d a) const
 	{
 		return vector_3d(this->x - a.x, this->y - a.y, this->z - a.z);
 	}
-	vector_3d operator*(const double a)
+	vector_3d operator*(const double a) const
 	{
 		return vector_3d(this->x * a, this->y * a, this->z * a);
 	}
-	vector_3d operator/(const double a)
+	vector_3d operator/(const double a) const
 	{
 		return vector_3d(this->x / a, this->y / a, this->z / a);
 	}
@@ -118,31 +118,31 @@ struct vector_3d_complex
 		this->y = a.y;
 		this->z = a.z;
 	}
-	vector_3d_complex operator+(const vector_3d_complex a)
+	vector_3d_complex operator+(const vector_3d_complex a) const
 	{
 		return vector_3d_complex(this->x + a.x, this->y + a.y, this->z + a.z);
 	}
-	vector_3d_complex operator-(const vector_3d_complex a)
+	vector_3d_complex operator-(const vector_3d_complex a) const
 	{
 		return vector_3d_complex(this->x - a.x, this->y - a.y, this->z - a.z);
 	}
-	vector_3d_complex operator*(const std::complex<double> a)
+	vector_3d_complex operator*(const std::complex<double> a) const
 	{
 		return vector_3d_complex(this->x * a, this->y * a, this->z * a);
 	}
-	vector_3d_complex operator/(const std::complex<double> a)
+	vector_3d_complex operator/(const std::complex<double> a) const
 	{
 		return vector_3d_complex(this->x / a, this->y / a, this->z / a);
 	}
-	vector_3d_complex operator+(const std::complex<double> a)
+	vector_3d_complex operator+(const std::complex<double> a) const
 	{
 		return vector_3d_complex(this->x + a, this->y + a, this->z + a);
 	}
-	vector_3d_complex operator-(const std::complex<double> a)
+	vector_3d_complex operator-(const std::complex<double> a) const
 	{
 		return vector_3d_complex(this->x - a, this->y - a, this->z - a);
 	}
-	vector_3d_complex operator*(const vector_3d a)
+	vector_3d_complex operator*(const vector_3d a) const
 	{
 		return vector_3d_complex(this->x * a.x, this->y * a.y, this->z * a.z);
 	}

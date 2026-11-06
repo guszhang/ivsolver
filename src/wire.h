@@ -30,6 +30,16 @@ namespace IPTVisual
         std::complex<double> current;
         double total_length;
 
+        // Circuit description of the loop formed by this wire (used when an
+        // analysis frequency is given). Phasors are peak amplitudes.
+        bool current_defined = false;               // 'i' directive: current source
+        bool voltage_defined = false;               // 'V' directive: voltage source
+        std::complex<double> voltage = 0;           // source voltage (V)
+        double series_resistance = 0;               // 'R' directive (ohm)
+        double series_capacitance = 0;              // 'C' directive (F), 0 = none
+        double external_inductance = 0;             // 'L' directive (H)
+        double tune_frequency = -1;                 // 'T' directive (Hz), <0 = off, 0 = analysis frequency
+
         void append_any_spiral(const std::vector<vector_3d> key_points);
         void append_any_arc(const std::vector<vector_3d> key_points, const double axis_x, const double axis_y, const int direction);
         void append_any_lines(const std::vector<vector_3d> key_points);
@@ -45,6 +55,7 @@ namespace IPTVisual
         void bend_circle_x(double radius);
 
         void update_from_trajectory();
+        bool is_valid() const { return model_is_valid; }
 
         double inductance_with(const wire &w);
         vector_3d_complex b_field_at_point(vector_3d point);

@@ -10,6 +10,7 @@ IPTVisual solver implemented in C++. A fast winding modeler and inductance calcu
 - Designed for use with optimization workflows in MATLAB, Python, and other environments
 - Modular code structure for easy extension and customization
 - Includes example usage and test cases in the `/examples` directory
+- **New in 2.0:** complex Poynting vector (E, B and S = ½E×H\*) at arbitrary observation points, a frequency-domain circuit solver (R, C, L, voltage/current sources, automatic resonance tuning), multithreading, JSON output, and a WebAssembly build used by the [IPTVisual](https://github.com/guszhang/iptvisual) web front-end
 
 See the [wire-forming directive gallery](examples/directives/README.md) for a rendered, runnable use case for each geometry directive.
 
@@ -21,9 +22,10 @@ See the [wire-forming directive gallery](examples/directives/README.md) for a re
    ```
 
 2. Build the project:
-   on Linux:
+   on Linux or macOS:
    ```bash
-   make
+   make            # builds build/ivsolver (multithreaded)
+   make test       # optional: regression and physics checks
    ```
 
    on Windows:
@@ -45,7 +47,7 @@ usage example:
    where `wire_def` contains the definitions of the wires and `output_file` will contain the calculated inductance values.
 
    The input file format is as follows:
-   - First line: number of wires `n` (a positive integer). The next `n` sections define each wire.
+   - First line: number of wires `n` (a positive integer). The next `n` sections define each wire. Text after `#` on any line is a comment.
    - First line of each wire section: `cs_radius` (wire cross-section radius in metres, as a positive float), followed by `m` (the number of commands, a positive integer). The radius uses the same units as the coordinates; the code does not convert units.
    - First line of each command section: `command_directive`. One of the following chars:
       - `l`: linear segment, followed by `k` number of points (a positive integer number), and then `k` lines of coordinates in the format `x y z` (three float numbers). It connects all key points with lines. It will automatically connect the previous last point (if exist) to the first point in this list.
@@ -61,7 +63,13 @@ usage example:
       - `o`: followed by `x y z`, which translates the current wire points generated so far by that vector.
       - `n`: followed by `x y z`, which rotates the current wire points generated so far so the original positive z direction aligns with the specified vector.
       - `b`: followed by bending radius `r` in metres, which bends the current wire points generated so far around the x-axis to fit a cylindrical surface.
-      - `i`: followed by `real imaginary` (two float numbers), which sets the wire's current to the specified complex value. This is used for magnetic field calculations.
+      - `i`: followed by `real imaginary` (two float numbers), which sets the wire's current to the specified complex value. This is used for magnetic field calculations. In circuit analysis (see below) it makes the wire current-driven.
+      - Circuit directives (upper case, used only when an analysis frequency is given with `--freq`; see [Circuit analysis](#circuit-analysis)):
+         - `V`: followed by `real imaginary`, a voltage source in the wire's loop (peak phasor, volts).
+         - `R`: followed by a series resistance in ohms.
+         - `C`: followed by a series capacitance in farads (`0` means no capacitor).
+         - `L`: followed by an additional external series inductance in henries.
+         - `T`: followed by a frequency in Hz; a series capacitor is chosen so the loop (self + external inductance) resonates at that frequency. `T 0` tunes to the analysis frequency. Overrides `C`.
   
    All coordinates, wire radii, and lengths are in metres; angles are in degrees. The wires are defined in a 3D Cartesian coordinate system.
    
@@ -105,6 +113,103 @@ usage example:
    $$
    
    where $\mathbf{B}(\mathbf{r})$ is the magnetic field at point $\mathbf{r}$, $I(\mathbf{r'})$ is the current at point $\mathbf{r'}$, and $\mathrm{d}\mathbf{l'}$ is the differential length element along the wire. The solver uses numerical integration to compute the contributions from each segment of the wires.
+
+> **Version 2.0** adds the circuit solver, the complex Poynting vector (`-p`), multithreading, JSON output and a WebAssembly build. All earlier commands and file formats keep working unchanged. The method, file formats and validation are described in [docs/poynting.md](docs/poynting.md).
+
+### **Circuit analysis**
+
+When a frequency is given (`--freq <Hz>`), every wire is treated as one closed loop with series impedance
+$Z_k = R_k + j\omega(L_{kk}+L_{\mathrm{ext},k}) + \frac{1}{j\omega C_k}$, coupled to the others through the computed mutual inductances:
+
+$$
+\mathbf{V} = \left(\mathbf{Z}_\mathrm{diag} + j\omega\mathbf{M}\right)\mathbf{I}
+$$
+
+A wire with an `i` directive is current-driven (its source voltage is solved for); every other wire is voltage-driven by its `V` source, or is a passive closed loop (0 V) if it has none. Phasors are **peak amplitudes**, so complex power is $\frac{1}{2}VI^*$.
+
+```bash
+ivsolver wire_def result --freq 85000        # writes result.lmat, result.circuit and trajectories
+```
+
+`result.circuit` lists, per wire: the drive type, current, source voltage, self impedance, the series capacitance used, the source's real and reactive power, and the resistive loss.
+
+### **Poynting vector calculation**
+
+```bash
+ivsolver wire_def result -p observation_def --freq 85000
+```
+
+At every observation point the solver computes, from the wire currents $I$ (taken from the circuit solution, or directly from the `i` directives when every wire has one):
+
+$$
+\mathbf{B} = \frac{\mu_0}{4\pi}\sum I\,\frac{\mathrm{d}\mathbf{l}\times\mathbf{R}}{|\mathbf{R}|^3},\qquad
+\mathbf{A} = \frac{\mu_0}{4\pi}\sum \frac{I\,\mathrm{d}\mathbf{l}}{|\mathbf{R}|},\qquad
+\mathbf{E} = -j\omega\mathbf{A},\qquad
+\mathbf{S} = \tfrac{1}{2}\,\mathbf{E}\times\mathbf{H}^*
+$$
+
+$\mathrm{Re}\{\mathbf{S}\}$ is the time-averaged power flow density (W/m²) and $\mathrm{Im}\{\mathbf{S}\}$ the reactive part. The instantaneous Poynting vector, used for animations of the time-varying energy flow, follows from the phasors:
+
+$$
+\mathbf{s}(t) = \mathrm{Re}\{\mathbf{E}e^{j\omega t}\}\times\mathrm{Re}\{\mathbf{H}e^{j\omega t}\} = \mathrm{Re}\{\mathbf{S}\} + \mathrm{Re}\{\tfrac{1}{2}\mathbf{E}\times\mathbf{H}\,e^{j2\omega t}\}
+$$
+
+E contains the field induced by the time-varying currents only. The electrostatic field of charges, such as those on compensation capacitors or the winding's distributed capacitance, is not modelled. This matches the quasi-static assumption behind the inductance calculation. The method follows the [IPTVisual paper](https://doi.org/10.3390/wevj13040063).
+
+By default `-p` integrates each straight segment in closed form (`--kernel exact`). Inside a conductor it uses the field of a round wire, so values stay finite near and on the wires. `--kernel midpoint` uses the legacy current-element approximation of `-b`.
+
+Output `result.poynting` has a `#` header and one row per point: `x y z`, then the real/imaginary parts of `Ex Ey Ez`, `Bx By Bz` and `Sx Sy Sz`, and finally the distance to the nearest conductor (useful for hiding points inside windings). It can be read with `numpy.loadtxt`.
+
+### **Observation points**
+
+Both `-b` and `-p` accept either the grid format described above (optionally preceded by the keyword `grid`) or an explicit list of points:
+
+```text
+points 3
+0 0 0.01
+0 0 0.02
+0.05 0 0.02
+```
+
+### **Other options**
+
+| Option | Meaning |
+|---|---|
+| `-f`, `--freq <Hz>` | analysis frequency; enables the circuit solution |
+| `-t`, `--threads <n>` | worker threads (default: all hardware threads); results do not depend on the thread count |
+| `--kernel exact\|midpoint` | field integration kernel |
+| `--circuit` | with `-p`, solve the circuit even when every wire has an `i` current |
+| `--json` | write a single JSON document to `<output>.json`, or to stdout when `<output>` is `-` |
+| `--no-trj` | do not write trajectories |
+
+Use `-` as the wire or observation definition to read from standard input. Malformed input now stops with a message naming the wire and directive, instead of being silently misread.
+
+### **WebAssembly build**
+
+```bash
+make wasm     # requires the Emscripten SDK (em++ on PATH)
+```
+
+This produces `build/wasm/ivsolver.mjs`, a single-file ES module that exposes `solve(wireDef, obsDef, mode, frequency, kernel, includeTrajectories)` and returns the same JSON document as `--json`. IPTVisual uses it to run the solver in the browser.
+
+### **Tests**
+
+```bash
+make test
+```
+
+The tests check the committed examples against their results. They also verify the field solver against an analytic loop field, Faraday's law (∮E·dl = −jωΦ) and Poynting's theorem: the time-averaged power flowing into a box around a resistive receiver equals its I²R/2 loss.
+
+## IPTVisual front-end
+
+[IPTVisual](https://github.com/guszhang/iptvisual) is the browser-based modelling and visualisation front-end for IVSolver. It edits windings and circuits interactively, and plots the inductance matrix, circuit results and the 3D energy flow, including animations of the instantaneous Poynting vector. It runs this solver either compiled to WebAssembly (`make wasm`) or as a local native binary for large models.
+
+## Citing
+
+If you use IVSolver in academic work, please cite:
+
+- C. Zhang et al., "IPTVisual: Visualisation of the Spatial Energy Flows in Inductive Power Transfer Systems with Arbitrary Winding Shapes", *World Electric Vehicle Journal*, 13(4):63, 2022. [doi:10.3390/wevj13040063](https://doi.org/10.3390/wevj13040063)
+- H. Wang, C. Zhang and S. Y. R. Hui, "Visualization of Energy Flow in Wireless Power Transfer Systems," *2019 IEEE Wireless Power Transfer Conference (WPTC)*, London, UK, 2019, pp. 536–541. [doi:10.1109/WPTC45513.2019.9055544](https://doi.org/10.1109/WPTC45513.2019.9055544) ([interactive demonstration](https://guszhang.github.io/IPTVisual/WPW2019Demo)).
 
 ## Contributing
 Contributions are welcome! Please submit a pull request or open an issue to discuss changes or improvements. Please contact me if you have any questions or suggestions.
