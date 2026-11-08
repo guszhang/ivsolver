@@ -227,6 +227,61 @@ def test_legacy_cli():
         check("legacy -b writes trajectories", (tmp / "c_0.trj").exists())
 
 
+def test_cores():
+    """Linear magnetic cores (volume integral method)."""
+    R, wr, a = 1.0, 0.002, 0.02
+    base = f"1\n{wr} 2\ne 0 0 0 0 0 1 1 0 0 {R} {R} 0 360\ni 1 0\n"
+    L0 = run_json(base)["inductance"][0][0]
+    B0 = MU0 / (2 * R)
+
+    # mu_r = 1 is air: nothing changes.
+    same = run_json(base + "cores 1\nbox 1 0.01 -0.01 -0.01 -0.01 0.01 0.01 0.01\n")["inductance"][0][0]
+    check("core with mu_r = 1 leaves L unchanged", abs(same - L0) < 1e-18)
+
+    # One cubic cell is the uniformly magnetised cube, whose demagnetising factor is exactly 1/3.
+    for mur in (2, 100, 1e4):
+        chi = mur - 1
+        j = run_json(base + f"cores 1\nbox {mur} {a} {-a/2} {-a/2} {-a/2} {a/2} {a/2} {a/2}\n")
+        expected = a ** 3 * chi / (1 + chi / 3) * B0 ** 2 / MU0
+        got = j["inductance"][0][0] - L0
+        check(f"single-cell cube dL, mu_r={mur:g}", abs(got / expected - 1) < 1e-3, f"ratio {got / expected:.5f}")
+
+    # Small sphere at the centre of a big loop (nearly uniform field): dL = V 3(mu_r-1)/(mu_r+2) B0^2/mu0.
+    r, h, mur = 0.01, 0.002, 2
+    j = run_json(base + f"cores 1\nsphere {mur} {h} 0 0 0 {r}\n")
+    V = j["core"]["cells"] * h ** 3
+    expected = V * 3 * (mur - 1) / (mur + 2) * B0 ** 2 / MU0
+    got = j["inductance"][0][0] - L0
+    check("sphere in a loop, mu_r=2 (dL)", abs(got / expected - 1) < 0.02, f"ratio {got / expected:.4f}")
+    check("core solve converged", j["core"]["residual"] < 1e-6, f"residual {j['core']['residual']:.1e}")
+
+    # Inside the sphere B = 3 mu_r/(mu_r+2) B0; far away the core hardly matters.
+    pts = [(0.0011, 0.0013, 0.0017), (0, 0, 0.5)]
+    air = run_json(base, "-p", points_def(pts), ["--freq", "1000"])
+    core = run_json(base + f"cores 1\nsphere {mur} {h} 0 0 0 {r}\n", "-p", points_def(pts), ["--freq", "1000"])
+    ratio_in = core["field"]["B"][4] / air["field"]["B"][4]
+    check("B inside a mu_r=2 sphere", abs(ratio_in / 1.5 - 1) < 0.03, f"ratio {ratio_in:.4f}")
+    ratio_far = core["field"]["B"][10] / air["field"]["B"][10]
+    check("B far from the core is nearly unchanged", abs(ratio_far - 1) < 1e-3, f"ratio {ratio_far:.5f}")
+
+    # Two coaxial loops around a rod: L stays symmetric, mutual inductance increases.
+    two = "2\n" + loop(0.05, 0.0, extra="i 1 0\n") + loop(0.05, 0.05, extra="i 0 0\n")
+    bare = run_json(two)["inductance"]
+    cored = run_json(two + "cores 1\ncylinder 200 0.01 0 0 0.025 0.01 0.2 z\n")["inductance"]
+    check("core L symmetric", abs(cored[0][1] - cored[1][0]) < 1e-15 * max(1, abs(cored[0][1])) + 1e-18)
+    check("core raises self and mutual inductance", cored[0][0] > bare[0][0] and cored[0][1] > bare[0][1])
+
+    for bad, what in (("cores 1\nbox 0.5 0.01 0 0 0 1 1 1\n", "mu_r below 1"),
+                      ("cores 1\nbox 2 0.01 0 0 0 1\n", "truncated box"),
+                      ("cores 1\ncone 2 0.01 0 0 0 1\n", "unknown shape"),
+                      ("cores 1\nbox 2 0.0001 0 0 0 1 1 1\n", "too many cells")):
+        try:
+            run_json(base + bad)
+            check(f"core input error: {what}", False)
+        except RuntimeError:
+            check(f"core input error: {what}", True)
+
+
 if __name__ == "__main__":
     if not BIN.is_file():
         sys.exit(f"solver binary not found: {BIN} (run make first)")
@@ -239,5 +294,6 @@ if __name__ == "__main__":
     test_near_wire_finite()
     test_errors()
     test_legacy_cli()
+    test_cores()
     print(f"\n{'All tests passed' if not failures else f'{len(failures)} test(s) failed'}")
     sys.exit(1 if failures else 0)

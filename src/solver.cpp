@@ -10,6 +10,7 @@
 #include <cmath>
 #include <cstdio>
 #include <fstream>
+#include <sstream>
 #include <stdexcept>
 
 namespace
@@ -189,7 +190,33 @@ namespace ivsolver
     {
         result res;
         auto t0 = clock_type::now();
-        res.wires = read_wires(wire_def);
+        std::vector<core_body> core_bodies;
+        {
+            // The optional "cores" section follows the wire blocks in the same text.
+            std::string line, wire_text, core_text;
+            bool in_cores = false;
+            while (std::getline(wire_def, line))
+            {
+                if (!in_cores)
+                {
+                    const size_t hash = line.find('#');
+                    const std::string code = hash == std::string::npos ? line : line.substr(0, hash);
+                    const size_t first = code.find_first_not_of(" \t\r");
+                    if (first != std::string::npos && code.compare(first, 5, "cores") == 0)
+                    {
+                        in_cores = true;
+                    }
+                }
+                (in_cores ? core_text : wire_text) += line + "\n";
+            }
+            std::istringstream wire_stream(wire_text);
+            res.wires = read_wires(wire_stream);
+            if (in_cores)
+            {
+                std::istringstream core_stream(core_text);
+                core_bodies = read_cores(core_stream);
+            }
+        }
         if (opt.mode != solve_mode::inductance)
         {
             if (!obs_def)
@@ -223,10 +250,26 @@ namespace ivsolver
             }
         }
 
+        core_model core;
+        if (!core_bodies.empty())
+        {
+            const kernel_type ck = opt.kernel_given ? opt.kernel : kernel_type::exact;
+            core = build_core_model(core_bodies, res.wires, ck, opt.threads);
+            res.core_cells = core.centre.size();
+            for (double r : core.residual)
+            {
+                res.core_residual = std::max(res.core_residual, r);
+            }
+        }
+
         if (opt.mode == solve_mode::inductance || need_circuit)
         {
             auto t1 = clock_type::now();
             res.inductance = compute_inductance_matrix(res.wires, opt.threads);
+            if (!core.empty())
+            {
+                add_core_inductance(core, res.inductance);
+            }
             res.has_inductance = true;
             res.inductance_ms = ms_since(t1);
         }
@@ -247,11 +290,23 @@ namespace ivsolver
         {
             res.kernel = opt.kernel_given ? opt.kernel : kernel_type::midpoint;
             res.b_values = compute_b_field(res.wires, res.points, res.kernel, opt.threads);
+            if (!core.empty())
+            {
+                std::vector<vector_3d_complex> cb;
+                core_fields(core, res.currents, res.points, opt.threads, cb, nullptr);
+                for (size_t p = 0; p < cb.size(); p++)
+                {
+                    res.b_values[p].x += cb[p].x;
+                    res.b_values[p].y += cb[p].y;
+                    res.b_values[p].z += cb[p].z;
+                }
+            }
         }
         else if (opt.mode == solve_mode::poynting)
         {
             res.kernel = opt.kernel_given ? opt.kernel : kernel_type::exact;
             res.field = compute_em_field(res.wires, res.currents, res.points, opt.frequency, res.kernel, opt.threads);
+            apply_core_to_samples(core, res.currents, res.points, opt.frequency, opt.threads, res.field);
         }
         res.field_ms = ms_since(t2);
         return res;
@@ -386,6 +441,12 @@ namespace ivsolver
                 }
                 out << ']';
             }
+            out << '}';
+        }
+        if (res.core_cells)
+        {
+            out << ",\"core\":{\"cells\":" << res.core_cells << ",\"residual\":";
+            j.num(res.core_residual);
             out << '}';
         }
         out << ",\"timing_ms\":{\"geometry\":";

@@ -116,6 +116,27 @@ usage example:
 
 > **Version 2.0** adds the circuit solver, the complex Poynting vector (`-p`), multithreading, JSON output and a WebAssembly build. All earlier commands and file formats keep working unchanged. The method, file formats and validation are described in [docs/poynting.md](docs/poynting.md).
 
+### **Magnetic cores**: Linear permeable bodies (ferrite, iron powder).
+
+Append a `cores` section after the last wire block of the wire definition:
+
+```
+cores 2
+box      mu_r voxel  x0 y0 z0  x1 y1 z1
+sphere   mu_r voxel  cx cy cz  radius
+cylinder mu_r voxel  cx cy cz  radius length axis(x|y|z)
+```
+
+Lengths are in metres, `mu_r >= 1`, `voxel` is the cell edge. Each body is split into cells carrying a uniform
+magnetisation `M = (mu_r - 1) H`; the cell magnetisations are solved per winding by conjugate gradients
+(at most 4000 cells in total). The core adds to the inductance matrix (so the circuit solve sees it) and to
+`B`, `E` and `S` at the observation points. The JSON output gains `"core": {"cells", "residual"}`.
+
+Limits: linear, quasi-static, real `mu_r` (no saturation, eddy currents or core loss). Boxes converge well;
+curved bodies are staircased, so expect a few percent error in `dL` and larger local errors in `B` at high
+`mu_r` unless the voxel is small. The vector potential used for `E` is a point-dipole approximation near the core.
+Details: `docs/poynting.md` section 7.
+
 ### **Circuit analysis**
 
 When a frequency is given (`--freq <Hz>`), every wire is treated as one closed loop with series impedance

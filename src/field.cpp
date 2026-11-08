@@ -143,6 +143,15 @@ namespace
 
 namespace ivsolver
 {
+    vector_3d unit_b_field(const IPTVisual::wire &w, const vector_3d &point, kernel_type kernel)
+    {
+        if (w.segments.empty())
+        {
+            return vector_3d();
+        }
+        return wire_field(w, point, kernel, false).B;
+    }
+
     std::vector<vector_3d_complex> compute_b_field(const std::vector<IPTVisual::wire> &wires,
                                                    const std::vector<vector_3d> &points,
                                                    kernel_type kernel, int threads)

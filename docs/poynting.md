@@ -118,6 +118,24 @@ See [examples/poynting_two_coil](../examples/poynting_two_coil/README.md) for a 
 
 The inductance matrix and the field evaluation run on all hardware threads (`--threads` to limit). Work is split into fixed chunks, so results do not depend on the thread count. For the two 11-turn helices of the example (about 7,000 segments each), the inductance matrix took 1.0 s with version 1, against 0.5 s single-threaded and 0.1 s on 12 threads with version 2.
 
+## 7. Magnetic cores
+
+Cores use a volume integral method. A body is voxelised into prisms with uniform magnetisation `M_v = chi_v H`
+(`chi = mu_r - 1`). With `H0` the free-space field of a winding at 1 A and `G` the exact H-field tensor of a uniformly
+magnetised prism (point dipole beyond 8 half-sizes), the cell magnetisations solve
+
+    (1/chi_v) M_v - sum_u G(r_v - r_u) M_u = H0(r_v)
+
+which is symmetric positive definite for `mu_r >= 1` (conjugate gradients, Jacobi preconditioner, tolerance 1e-9).
+One solve per winding; everything else is superposition:
+
+    B(r)   = B_air(r) + mu0 (H_M(r) + M(r) inside a cell)
+    dL_ij  = sum_v V_v M_j(v) . B_i(v)      (symmetrised; added to the Neumann matrix)
+
+Checks: one cubic cell reproduces the exact cube result (demagnetising factor 1/3); a small sphere in a large loop
+matches `dL = V 3(mu_r-1)/(mu_r+2) B0^2/mu0`; `tests/run_tests.py` covers both. Known limits: staircased curved
+surfaces converge slowly at high `mu_r`, `A` (hence `E`) is a point-dipole approximation, no saturation or loss.
+
 ## Compatibility
 
 - `ivsolver wire_def out`, `ivsolver wire_def out -l x` and `ivsolver wire_def out -b obs_def` behave as before. They produce the same `.lmat`, `.trj` and `.obs` files with the same layout and values, and `-b` still uses the midpoint kernel.

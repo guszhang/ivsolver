@@ -2,13 +2,13 @@ CXX ?= g++
 CXXFLAGS ?= -std=c++2a -O3
 CPPFLAGS += -Isrc
 LDFLAGS += -pthread
-SRC = src/arithmetic.cpp src/io.cpp src/wire.cpp src/field.cpp src/circuit.cpp src/solver.cpp src/main.cpp
+SRC = src/arithmetic.cpp src/io.cpp src/wire.cpp src/field.cpp src/circuit.cpp src/core.cpp src/solver.cpp src/main.cpp
 HDR = $(wildcard src/*.h)
 BIN = build/ivsolver
 
 # WebAssembly build (requires the Emscripten SDK: https://emscripten.org).
 EMXX ?= em++
-WASM_SRC = src/arithmetic.cpp src/io.cpp src/wire.cpp src/field.cpp src/circuit.cpp src/solver.cpp src/wasm_api.cpp
+WASM_SRC = src/arithmetic.cpp src/io.cpp src/wire.cpp src/field.cpp src/circuit.cpp src/core.cpp src/solver.cpp src/wasm_api.cpp
 WASM_OUT = build/wasm/ivsolver.mjs
 WASM_FLAGS = -std=c++2a -O3 -Isrc -lembind -fexceptions \
 	-sMODULARIZE=1 -sEXPORT_ES6=1 -sEXPORT_NAME=createIVSolver \

@@ -14,6 +14,7 @@
 #include <vector>
 
 #include "circuit.h"
+#include "core.h"
 #include "field.h"
 #include "wire.h"
 
@@ -51,6 +52,8 @@ namespace ivsolver
         std::vector<vector_3d_complex> b_values; // -b
         std::vector<field_sample> field;         // -p
         kernel_type kernel = kernel_type::exact;
+        size_t core_cells = 0;       // voxels in magnetic cores (0 = air only)
+        double core_residual = 0;    // worst relative CG residual
         double geometry_ms = 0, inductance_ms = 0, field_ms = 0;
     };
 

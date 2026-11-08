@@ -48,6 +48,9 @@ namespace ivsolver
         double min_distance; // distance to the nearest conductor axis (m)
     };
 
+    // Free-space flux density of one wire per ampere at a point.
+    vector_3d unit_b_field(const IPTVisual::wire &w, const vector_3d &point, kernel_type kernel);
+
     // Magnetic flux density only (legacy -b behaviour, uses the wire currents).
     std::vector<vector_3d_complex> compute_b_field(const std::vector<IPTVisual::wire> &wires,
                                                    const std::vector<vector_3d> &points,
